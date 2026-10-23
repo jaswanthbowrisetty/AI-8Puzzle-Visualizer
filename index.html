@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8-Puzzle Search Lab — Depth First Search</title>
+<meta name="description" content="Step-by-step 8-Puzzle solver built around Depth First Search, with BFS, DLS, IDDLS, UCS, GBFS and A* for comparison. AI Digital Assignment by Bowri Setty Jaswanth (24BDS0071).">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/lab.css" rel="stylesheet">
+<script>
+  (function () {
+    var mode = null;
+    try { mode = localStorage.getItem("lab-mode"); } catch (e) {}
+    if (!mode && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) mode = "dark";
+    document.documentElement.setAttribute("data-bs-theme", mode || "light");
+  })();
+</script>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ======================= Sidebar (desktop) / top bar (mobile) ======================= -->
+  <aside class="rail">
+    <a class="rail-brand" href="#overview">
+      <img src="assets/icon.svg" alt="" width="34" height="34">
+      <span><b>8-Puzzle</b><small>Search Lab</small></span>
+    </a>
+    <nav class="rail-nav" aria-label="Main">
+      <a href="#overview" data-view="overview"><span class="ri">◎</span><span>Overview</span></a>
+      <a href="#visualizer" data-view="visualizer"><span class="ri">▦</span><span>Visualizer</span></a>
+      <a href="#benchmark" data-view="benchmark"><span class="ri">≡</span><span>Benchmark</span></a>
+      <a href="#theory" data-view="theory"><span class="ri">¶</span><span>Theory</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="rail-id">
+        <small>Student</small>
+        <b>Bowri Setty Jaswanth</b>
+        <span class="mono">24BDS0071</span>
+      </div>
+      <button id="modeBtn" class="mode-btn" type="button" aria-label="Switch light / dark mode">
+        <span class="when-light">☾ Dark mode</span><span class="when-dark">☀ Light mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="stage">
+
+  <!-- ================================ OVERVIEW ================================ -->
+  <section class="view" id="view-overview">
+    <div class="intro">
+      <div class="intro-text">
+        <span class="tag tag-dfs">Algorithm No. 2 · Depth First Search</span>
+        <h1>Interactive 8-Puzzle Problem Solver using AI Search Algorithms</h1>
+        <p class="sub">An interactive lab for watching how <b>Depth First Search</b> explores the 8-puzzle: it dives down one branch, backtracks when it gets stuck, and keeps a stack of states still to try.</p>
+        <dl class="idcard">
+          <div><dt>Course</dt><dd>Artificial Intelligence</dd></div>
+          <div><dt>Assignment</dt><dd>Digital Assignment (Case Study)</dd></div>
+          <div><dt>Student name</dt><dd>Bowri Setty Jaswanth</dd></div>
+          <div><dt>Registration number</dt><dd class="mono">24BDS0071</dd></div>
+        </dl>
+        <div class="d-flex flex-wrap gap-2 mt-4">
+          <a class="btn btn-lab" href="#visualizer">Start the visualizer →</a>
+          <a class="btn btn-ghost" href="#theory">How DFS works</a>
+        </div>
+      </div>
+      <figure class="intro-demo">
+        <div class="demo-head"><span>DFS diving on the example</span><span id="demoDepth" class="mono">depth 0</span></div>
+        <div id="demoBoard" class="pz pz-xl"></div>
+        <div class="demo-meter"><div id="demoMeter"></div></div>
+        <figcaption id="demoText" class="mono">expansion 1 · stack 0</figcaption>
+      </figure>
+    </div>
+
+    <div class="row g-4 mt-2">
+      <div class="col-lg-5">
+        <div class="panel h-100">
+          <h2 class="h-panel">The 8-puzzle</h2>
+          <p>Eight numbered tiles sit in a 3 × 3 frame with one empty square. Any tile beside the empty square can slide into it. Starting from a scrambled <b>initial state</b>, the goal is to reach a target <b>goal state</b>.</p>
+          <p class="mb-0">Searching for the moves is a classic AI exercise. There are 9!/2 = <b>181,440</b> reachable arrangements: small enough to search completely, but large enough that the choice of strategy makes a huge difference.</p>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="panel h-100">
+          <h2 class="h-panel">Formulated as a search problem</h2>
+          <div class="formal">
+            <div><b>State</b><span>Position of the eight tiles and the blank</span></div>
+            <div><b>Initial state</b><span>Typed in, chosen from examples, or generated at random</span></div>
+            <div><b>Actions</b><span>Slide the blank Up, Down, Left or Right (2 to 4 options)</span></div>
+            <div><b>Transition</b><span>Swap the blank with the neighbouring tile</span></div>
+            <div><b>Goal test</b><span>Board equals the goal board</span></div>
+            <div><b>Path cost</b><span>Each move costs 1</span></div>
+          </div>
+          <p class="note mb-0 mt-3">A goal is reachable only when both boards have the same inversion parity. The app checks this before every search.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel mt-4">
+      <h2 class="h-panel">Why Depth First Search behaves the way it does</h2>
+      <div class="row g-4">
+        <div class="col-md-4"><div class="point"><span>01</span><h3>It uses a stack</h3><p>The newest state is always expanded next, so the search keeps extending the same line of moves.</p></div></div>
+        <div class="col-md-4"><div class="point"><span>02</span><h3>It backtracks</h3><p>When a line runs out of unexplored states, DFS pops back to the most recent branch it skipped.</p></div></div>
+        <div class="col-md-4"><div class="point"><span>03</span><h3>It isn't optimal</h3><p>The first goal it reaches is usually thousands of moves deep, even when 5 moves would do. The Benchmark page shows this.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== VISUALIZER =============================== -->
+  <section class="view" id="view-visualizer" hidden>
+    <header class="view-head">
+      <h1>Visualizer</h1>
+      <span class="tag tag-dfs">Assigned: Depth First Search</span>
+    </header>
+
+    <!-- Setup -->
+    <div class="panel setup">
+      <div class="row g-3">
+        <div class="col-6 col-md-3 col-xl-2">
+          <label class="lbl" for="inStart">Initial state</label>
+          <textarea id="inStart" class="form-control grid-in" rows="3" spellcheck="false">283
+164
+7_5</textarea>
+        </div>
+        <div class="col-6 col-md-3 col-xl-2">
+          <label class="lbl" for="inGoal">Goal state</label>
+          <textarea id="inGoal" class="form-control grid-in" rows="3" spellcheck="false">123
+8_4
+765</textarea>
+        </div>
+        <div class="col-md-6 col-xl-4">
+          <label class="lbl" for="pickAlgo">Search algorithm</label>
+          <select id="pickAlgo" class="form-select">
+            <option value="dfs" selected>Depth First Search (DFS) · assigned</option>
+            <option value="bfs">Breadth First Search (BFS)</option>
+            <option value="dls">Depth Limited Search (DLS)</option>
+            <option value="iddls">Iterative Deepening DLS (IDDLS)</option>
+            <option value="ucs">Uniform Cost Search (UCS)</option>
+            <option value="gbfs">Greedy Best First Search (GBFS)</option>
+            <option value="astar">A* Search</option>
+          </select>
+          <div class="row g-2 mt-1">
+            <div class="col-6" id="optOrder">
+              <label class="lbl" for="pickOrder">Move order</label>
+              <select id="pickOrder" class="form-select form-select-sm">
+                <option value="UDLR">U → D → L → R</option>
+                <option value="LRUD">L → R → U → D</option>
+                <option value="RDLU">R → D → L → U</option>
+                <option value="DRUL">D → R → U → L</option>
+              </select>
+            </div>
+            <div class="col-6" id="optHeur" hidden>
+              <label class="lbl" for="pickHeur">Heuristic</label>
+              <select id="pickHeur" class="form-select form-select-sm">
+                <option value="manhattan">Manhattan distance</option>
+                <option value="misplaced">Misplaced tiles</option>
+              </select>
+            </div>
+            <div class="col-6" id="optLimit" hidden>
+              <label class="lbl" for="pickLimit">Depth limit l</label>
+              <input id="pickLimit" type="number" min="0" max="60" value="20" class="form-control form-control-sm">
+            </div>
+            <div class="col-6" id="optMax" hidden>
+              <label class="lbl" for="pickMax">Deepest limit to try</label>
+              <input id="pickMax" type="number" min="1" max="40" value="31" class="form-control form-control-sm">
+            </div>
+          </div>
+        </div>
+        <div class="col-md-12 col-xl-4">
+          <label class="lbl" for="pickExample">Load an example</label>
+          <select id="pickExample" class="form-select">
+            <option value="">Select…</option>
+            <option value="283164705-123804765">Assignment example (optimal 5 moves)</option>
+            <option value="123405786-123456780">Very easy (2 moves)</option>
+            <option value="123840765-123804765">One move</option>
+            <option value="641302758-123456780">Medium (14 moves)</option>
+            <option value="867254301-123456780">Hardest possible (31 moves)</option>
+            <option value="123456870-123456780">Unsolvable</option>
+          </select>
+          <label class="lbl mt-2" for="pickShuffle">Or a random solvable puzzle</label>
+          <div class="input-group">
+            <select id="pickShuffle" class="form-select">
+              <option value="6">Short</option>
+              <option value="18" selected>Medium</option>
+              <option value="50">Long</option>
+            </select>
+            <button id="btnRandom" class="btn btn-lab-outline" type="button">Generate Random Puzzle</button>
+          </div>
+        </div>
+      </div>
+      <div id="setupMsg" class="msg" hidden></div>
+      <p id="algoBlurb" class="note mt-2 mb-0"></p>
+    </div>
+
+    <div class="row g-4 mt-0">
+      <!-- Board stage -->
+      <div class="col-xl-5">
+        <div class="panel h-100">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="lbl m-0">Current state</span>
+            <span id="phase" class="tag tag-muted">Idle</span>
+          </div>
+          <div id="boardNow" class="pz pz-xl mx-auto"></div>
+          <div class="pair">
+            <div><span class="lbl">Initial</span><div id="boardStart" class="pz pz-sm"></div></div>
+            <div class="pair-arrow">→</div>
+            <div><span class="lbl">Goal</span><div id="boardGoal" class="pz pz-sm is-goal"></div></div>
+          </div>
+
+          <div class="transport">
+            <button id="tRun" class="btn btn-lab" type="button">Run</button>
+            <button id="tPause" class="btn btn-tool" type="button" disabled>Pause</button>
+            <button id="tResume" class="btn btn-tool" type="button" disabled>Resume</button>
+            <button id="tBack" class="btn btn-tool" type="button" disabled title="Previous step (←)">◂ Prev step</button>
+            <button id="tFwd" class="btn btn-tool" type="button" disabled title="Next step (→)">Next step ▸</button>
+            <button id="tToPath" class="btn btn-tool" type="button" disabled>Go to solution</button>
+            <button id="tToEnd" class="btn btn-tool" type="button" disabled>Go to goal</button>
+            <button id="tReset" class="btn btn-tool" type="button">Reset</button>
+          </div>
+          <div class="speedrow">
+            <label for="tSpeed" class="lbl m-0">Speed</label>
+            <input id="tSpeed" type="range" class="form-range" min="1" max="12" value="6">
+            <span id="tSpeedVal" class="mono">6</span>
+          </div>
+          <div class="track"><div id="trackFill"></div></div>
+          <div id="where" class="mono small-note">Choose a puzzle and press Run.</div>
+        </div>
+      </div>
+
+      <!-- Live search state -->
+      <div class="col-xl-7">
+        <div class="panel h-100">
+          <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2">
+            <h2 class="h-panel mb-0">Live search state</h2>
+            <span id="truncNote" class="note m-0"></span>
+          </div>
+          <div class="chips mt-3">
+            <div class="chip"><span>Nodes generated</span><b id="cGen">0</b></div>
+            <div class="chip"><span>Nodes expanded</span><b id="cExp">0</b></div>
+            <div class="chip"><span id="cOpenLbl">Open list (stack)</span><b id="cOpen">0</b></div>
+            <div class="chip"><span>Closed list</span><b id="cClosed">0</b></div>
+            <div class="chip"><span>Current depth</span><b id="cDepth">–</b></div>
+            <div class="chip"><span>Deepest so far</span><b id="cDeep">–</b></div>
+            <div class="chip"><span>Path cost g(n)</span><b id="cG">–</b></div>
+            <div class="chip chip-h"><span>h(n) · f(n)</span><b id="cHF">–</b></div>
+          </div>
+
+          <div id="backtrack" class="backtrack" hidden></div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-sm-7">
+              <div class="duo">
+                <div class="duo-cell"><span class="lbl">Node being expanded</span><div id="nodeNow" class="slot"></div></div>
+                <div class="duo-cell"><span class="lbl">Its parent</span><div id="nodeParent" class="slot"></div></div>
+              </div>
+              <div class="lbl mt-3">Depth profile <span class="note m-0">(depth of each expanded node; dips = backtracking)</span></div>
+              <div id="profile" class="profile"></div>
+            </div>
+            <div class="col-sm-5">
+              <div class="lbl" id="openTitle">Open list · top of stack first</div>
+              <ol id="openList" class="openlist"><li class="none">empty</li></ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail tabs -->
+    <div class="panel mt-4">
+      <ul class="nav lab-tabs" role="tablist">
+        <li><button class="active" data-bs-toggle="tab" data-bs-target="#tabKids" type="button" role="tab">Generated successors</button></li>
+        <li><button data-bs-toggle="tab" data-bs-target="#tabClosed" type="button" role="tab">Closed list</button></li>
+        <li><button data-bs-toggle="tab" data-bs-target="#tabPath" type="button" role="tab" id="tabPathBtn">Solution path</button></li>
+        <li><button data-bs-toggle="tab" data-bs-target="#tabReport" type="button" role="tab" id="tabReportBtn">Solution summary</button></li>
+      </ul>
+      <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="tabKids" role="tabpanel"><div id="kids" class="tiles-row"><p class="none">The children of the expanded node appear here.</p></div></div>
+        <div class="tab-pane fade" id="tabClosed" role="tabpanel"><p class="note mt-0">Most recently expanded first.</p><div id="closedList" class="tiles-row"><p class="none">–</p></div></div>
+        <div class="tab-pane fade" id="tabPath" role="tabpanel"><div id="pathInfo" class="note mt-0"></div><div id="pathMoves" class="movestr mono"></div><div id="pathBoards" class="pathflow"><p class="none">Run a search to see the path.</p></div></div>
+        <div class="tab-pane fade" id="tabReport" role="tabpanel"><div id="report"><p class="none">The summary appears once the search reaches the goal (or gives up).</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================ BENCHMARK ================================ -->
+  <section class="view" id="view-benchmark" hidden>
+    <header class="view-head"><h1>Benchmark</h1><span class="note m-0">Same puzzle, every algorithm</span></header>
+    <div class="panel">
+      <div class="row g-3 align-items-end">
+        <div class="col-6 col-md-2"><label class="lbl" for="bStart">Initial state</label><textarea id="bStart" class="form-control grid-in" rows="3" spellcheck="false"></textarea></div>
+        <div class="col-6 col-md-2"><label class="lbl" for="bGoal">Goal state</label><textarea id="bGoal" class="form-control grid-in" rows="3" spellcheck="false"></textarea></div>
+        <div class="col-4 col-md-2"><label class="lbl" for="bLimit">DLS limit</label><input id="bLimit" type="number" class="form-control" value="20" min="0" max="60"></div>
+        <div class="col-8 col-md-3"><label class="lbl" for="bOrder">Move order (uninformed)</label><select id="bOrder" class="form-select"><option value="UDLR">U → D → L → R</option><option value="LRUD">L → R → U → D</option><option value="RDLU">R → D → L → U</option><option value="DRUL">D → R → U → L</option></select></div>
+        <div class="col-md-3 d-flex gap-2"><button id="bRandom" class="btn btn-lab-outline flex-fill" type="button">Random</button><button id="bGo" class="btn btn-lab flex-fill" type="button">Run all</button></div>
+      </div>
+      <div id="bMsg" class="msg" hidden></div>
+      <p class="note mb-0 mt-2">The puzzle is copied from the Visualizer when you open this page. Searches run in a background thread; times depend on your machine.</p>
+    </div>
+
+    <div class="panel mt-4">
+      <div class="table-responsive">
+        <table class="table bench align-middle mb-0">
+          <thead><tr><th>Algorithm</th><th>Found</th><th class="r">Moves</th><th class="r">Expanded</th><th class="r">Generated</th><th class="r">Max depth</th><th class="r">Time</th><th>Memory</th><th>Optimal</th></tr></thead>
+          <tbody id="bBody"><tr><td colspan="9" class="none">Press “Run all”.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row g-4 mt-0">
+      <div class="col-lg-6"><div class="panel h-100"><h2 class="h-panel">Nodes expanded <span class="note m-0">log scale</span></h2><div id="bChartExp" class="hbars"></div></div></div>
+      <div class="col-lg-6"><div class="panel h-100"><h2 class="h-panel">Solution length (moves) <span class="note m-0">log scale</span></h2><div id="bChartMoves" class="hbars"></div></div></div>
+    </div>
+
+    <div class="row g-4 mt-0">
+      <div class="col-lg-6">
+        <div class="panel h-100">
+          <h2 class="h-panel">DFS experiment: does move order matter?</h2>
+          <div class="table-responsive"><table class="table bench mb-0"><thead><tr><th>Move order</th><th class="r">Moves</th><th class="r">Expanded</th><th class="r">Time</th></tr></thead><tbody id="bOrders"><tr><td colspan="4" class="none">–</td></tr></tbody></table></div>
+        </div>
+      </div>
+      <div class="col-lg-6"><div class="panel h-100"><h2 class="h-panel">Takeaways</h2><div id="bNotes"><p class="none">–</p></div></div></div>
+    </div>
+  </section>
+
+  <!-- ================================= THEORY ================================= -->
+  <section class="view" id="view-theory" hidden>
+    <header class="view-head"><h1>Theory</h1><span class="note m-0">Description, principle, pros and cons, complexity, completeness, optimality</span></header>
+    <div class="panel">
+      <div class="table-responsive"><table class="table bench mb-0" id="theoryTable"></table></div>
+      <p class="note mb-0 mt-2"><i>b</i> branching factor (≈ 2.67) · <i>d</i> depth of shallowest goal · <i>m</i> maximum depth · <i>l</i> depth limit · <i>C*</i> optimal cost · <i>ε</i> smallest step cost</p>
+    </div>
+    <div class="row g-4 mt-0">
+      <div class="col-lg-3"><div class="panel p-2"><div class="nav flex-column theory-nav" id="theoryNav" role="tablist"></div></div></div>
+      <div class="col-lg-9"><div class="tab-content" id="theoryBody"></div></div>
+    </div>
+    <h2 class="h-section mt-5">Heuristics used by GBFS and A*</h2>
+    <div class="row g-4" id="theoryHeur"></div>
+  </section>
+
+  <footer class="foot">
+    <span>Bowri Setty Jaswanth · <span class="mono">24BDS0071</span> · Artificial Intelligence Digital Assignment · Algorithm 2: Depth First Search</span>
+    <a href="https://github.com/jaswanthbowrisetty/AI-8Puzzle-Visualizer" target="_blank" rel="noopener">Source code on GitHub</a>
+  </footer>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/board.js"></script>
+<script src="js/frontier.js"></script>
+<script src="js/searches.js"></script>
+<script src="js/theory.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
